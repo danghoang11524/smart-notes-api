@@ -300,6 +300,8 @@ Resources:
       KeySchema:
         - AttributeName: id
           KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
 
   # ---------------------------------------------------------------------
   # S3 Bucket for note images
