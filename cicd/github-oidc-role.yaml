@@ -154,6 +154,8 @@ Resources:
                   - dynamodb:TagResource
                   - dynamodb:UpdateTimeToLive
                   - dynamodb:DescribeTimeToLive
+                  - dynamodb:UpdateContinuousBackups
+                  - dynamodb:DescribeContinuousBackups
                 Resource:
                   - !Sub "arn:aws:dynamodb:*:${AWS::AccountId}:table/Notes-*"
 
