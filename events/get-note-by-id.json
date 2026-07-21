@@ -1,0 +1,27 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/notes/REPLACE_WITH_NOTE_ID",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "application/json"
+  },
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "notes/REPLACE_WITH_NOTE_ID"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "abc125",
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "GET",
+    "path": "/dev/notes/REPLACE_WITH_NOTE_ID",
+    "stage": "dev",
+    "requestId": "test-request-id-3",
+    "identity": {},
+    "protocol": "HTTP/1.1"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

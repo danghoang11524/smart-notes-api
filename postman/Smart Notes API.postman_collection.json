@@ -1,0 +1,137 @@
+{
+  "info": {
+    "name": "Smart Notes API",
+    "description": "Collection để test Smart Notes API (Serverless - API Gateway + Lambda + DynamoDB + S3).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://REPLACE_WITH_API_ID.execute-api.REPLACE_WITH_REGION.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "noteId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+      }
+    },
+    {
+      "name": "Create Note",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  pm.collectionVariables.set('noteId', json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"AWS Learning\",\n  \"content\": \"Learning Lambda\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/notes", "host": ["{{baseUrl}}"], "path": ["notes"] }
+      }
+    },
+    {
+      "name": "List Notes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/notes", "host": ["{{baseUrl}}"], "path": ["notes"] }
+      }
+    },
+    {
+      "name": "Get Note By Id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/notes/{{noteId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["notes", "{{noteId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Note",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"AWS Learning Updated\",\n  \"content\": \"Learning Lambda and API Gateway\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/notes/{{noteId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["notes", "{{noteId}}"]
+        }
+      }
+    },
+    {
+      "name": "Upload Note Image",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/notes/{{noteId}}/image",
+          "host": ["{{baseUrl}}"],
+          "path": ["notes", "{{noteId}}", "image"]
+        }
+      }
+    },
+    {
+      "name": "Delete Note Image",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/notes/{{noteId}}/image",
+          "host": ["{{baseUrl}}"],
+          "path": ["notes", "{{noteId}}", "image"]
+        }
+      }
+    },
+    {
+      "name": "Delete Note",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/notes/{{noteId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["notes", "{{noteId}}"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,367 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Smart Notes API - Serverless REST API for managing notes.
+  API Gateway -> Lambda (Express + serverless-http) -> DynamoDB + S3.
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+    Description: API Gateway deployment stage name (e.g. dev, prod)
+
+  BucketNamePrefix:
+    Type: String
+    Default: smart-notes-storage
+    Description: >
+      Prefix for the S3 bucket name. The final bucket name is
+      "<prefix>-<account-id>-<stage>" to guarantee global uniqueness.
+
+  GoogleClientId:
+    Type: String
+    NoEcho: true
+    Description: OAuth 2.0 Client ID from Google Cloud Console (Web application type)
+
+  GoogleClientSecret:
+    Type: String
+    NoEcho: true
+    Description: OAuth 2.0 Client Secret from Google Cloud Console
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 256
+    Runtime: nodejs22.x
+    Architectures:
+      - x86_64
+    Tracing: Active
+
+Resources:
+  # ---------------------------------------------------------------------
+  # API Gateway account-level CloudWatch role (required once per
+  # account/region before REST API execution/access logging can be
+  # enabled on any stage - without this, enabling logging on the stage
+  # fails with "CloudWatch Logs role ARN must be set").
+  # ---------------------------------------------------------------------
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchRole.Arn
+
+  # ---------------------------------------------------------------------
+  # Lambda Function (Express app wrapped by serverless-http)
+  # ---------------------------------------------------------------------
+  SmartNotesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "smart-notes-api-${StageName}"
+      CodeUri: ./
+      Handler: src/lambda.handler
+      Environment:
+        Variables:
+          # NOTE: AWS_REGION is a reserved Lambda runtime env var and is
+          # injected automatically - no need to set it here.
+          NOTES_TABLE_NAME: !Ref NotesTable
+          NOTES_BUCKET_NAME: !Ref NotesBucket
+      # ----- Least-privilege IAM permissions (no AdministratorAccess) -----
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - S3CrudPolicy:
+            BucketName: !Ref NotesBucket
+        # CloudWatch Logs permissions (CreateLogGroup/Stream, PutLogEvents)
+        # are granted automatically by SAM's default Lambda execution role.
+      Events:
+        RootApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SmartNotesApi
+            Path: /
+            Method: ANY
+            Auth:
+              Authorizer: NONE
+              ApiKeyRequired: false
+        ProxyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SmartNotesApi
+            Path: /{proxy+}
+            Method: ANY
+            Auth:
+              Authorizer: NONE
+              ApiKeyRequired: false
+        NotesApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SmartNotesApi
+            Path: /notes
+            Method: ANY
+            Auth:
+              Authorizer: CognitoAuthorizer
+        NotesProxyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SmartNotesApi
+            Path: /notes/{proxy+}
+            Method: ANY
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # ---------------------------------------------------------------------
+  # Cognito: User Pool + Hosted UI (email/password + Google login)
+  # ---------------------------------------------------------------------
+  SmartNotesUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "smart-notes-users-${StageName}"
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  SmartNotesUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "smart-notes-${AWS::AccountId}"
+      UserPoolId: !Ref SmartNotesUserPool
+
+  SmartNotesGoogleIdp:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref SmartNotesUserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: "email profile openid"
+      AttributeMapping:
+        email: email
+        username: sub
+
+  SmartNotesUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn:
+      - SmartNotesGoogleIdp
+    Properties:
+      ClientName: !Sub "smart-notes-client-${StageName}"
+      UserPoolId: !Ref SmartNotesUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AllowedOAuthFlows:
+        - implicit
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+        - Google
+      # Cả 2 biến thể (có và không có dấu "/" cuối) được khai báo để tránh
+      # lỗi redirect_mismatch nếu người dùng truy cập thiếu/thừa dấu "/".
+      CallbackURLs:
+        - !Sub "https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+        - !Sub "https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
+      LogoutURLs:
+        - !Sub "https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+        - !Sub "https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
+
+  # ---------------------------------------------------------------------
+  # API Gateway (REST API)
+  # ---------------------------------------------------------------------
+  SmartNotesApi:
+    Type: AWS::Serverless::Api
+    DependsOn:
+      - ApiGatewayAccount
+    Properties:
+      StageName: !Ref StageName
+      # ----- Require an API key on every method (CORS preflight/OPTIONS
+      # requests are exempt automatically, so the browser's preflight
+      # still succeeds without a key) -----
+      Auth:
+        ApiKeyRequired: true
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt SmartNotesUserPool.Arn
+            Identity:
+              Header: Authorization
+        DefaultAuthorizer: CognitoAuthorizer
+      BinaryMediaTypes:
+        - "multipart/form-data"
+        - "image/*"
+        - "application/octet-stream"
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,x-api-key'"
+        AllowOrigin: "'*'"
+      # ----- Access logging: 1 line per request, sent to its own log
+      # group below (separate from Lambda's own log group) -----
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: >-
+          {"requestId":"$context.requestId","ip":"$context.identity.sourceIp",
+          "caller":"$context.identity.caller","user":"$context.identity.user",
+          "requestTime":"$context.requestTime","httpMethod":"$context.httpMethod",
+          "resourcePath":"$context.resourcePath","status":"$context.status",
+          "protocol":"$context.protocol","responseLength":"$context.responseLength",
+          "responseLatency":"$context.responseLatency","integrationError":"$context.integration.error",
+          "authorizerError":"$context.authorizer.error"}
+      # ----- Execution logging: request/response metadata + errors for
+      # every method (separate from access logs above; visible under
+      # API-Gateway-Execution-Logs_<api-id>/<stage> log group) -----
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          LoggingLevel: INFO
+          DataTraceEnabled: false
+          MetricsEnabled: true
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 10
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/smart-notes-api-${StageName}-access"
+      RetentionInDays: 14
+
+  # ---------------------------------------------------------------------
+  # API Key + Usage Plan (throttling & monthly quota)
+  # ---------------------------------------------------------------------
+  SmartNotesApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - SmartNotesApi
+    Properties:
+      Name: !Sub "smart-notes-api-key-${StageName}"
+      Description: API key required to call the Smart Notes API
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref SmartNotesApi
+          StageName: !Ref StageName
+
+  SmartNotesUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - SmartNotesApi
+    Properties:
+      UsagePlanName: !Sub "smart-notes-usage-plan-${StageName}"
+      Description: Throttling and quota for the Smart Notes API
+      ApiStages:
+        - ApiId: !Ref SmartNotesApi
+          Stage: !Ref StageName
+      Throttle:
+        RateLimit: 10   # requests/second sustained
+        BurstLimit: 20  # requests in a burst
+      Quota:
+        Limit: 5000     # requests
+        Period: MONTH
+
+  SmartNotesUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref SmartNotesApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref SmartNotesUsagePlan
+
+  # ---------------------------------------------------------------------
+  # DynamoDB Table
+  # ---------------------------------------------------------------------
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "Notes-${StageName}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  # ---------------------------------------------------------------------
+  # S3 Bucket for note images
+  # ---------------------------------------------------------------------
+  NotesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketNamePrefix}-${AWS::AccountId}-${StageName}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: [GET, PUT, POST, DELETE]
+            AllowedOrigins: ["*"]
+            MaxAge: 3000
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the deployed API
+    Value: !Sub "https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref SmartNotesUserPool
+
+  UserPoolClientId:
+    Description: Cognito App Client ID (used by the frontend)
+    Value: !Ref SmartNotesUserPoolClient
+
+  HostedUILoginUrl:
+    Description: Hosted UI login URL (redirects with #id_token=... on success)
+    Value: !Sub
+      - "https://${Domain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${ClientId}&response_type=token&scope=openid+email+profile&redirect_uri=https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+      - Domain: !Ref SmartNotesUserPoolDomain
+        ClientId: !Ref SmartNotesUserPoolClient
+
+  HostedUILogoutUrl:
+    Description: Hosted UI logout URL
+    Value: !Sub
+      - "https://${Domain}.auth.${AWS::Region}.amazoncognito.com/logout?client_id=${ClientId}&logout_uri=https://${SmartNotesApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+      - Domain: !Ref SmartNotesUserPoolDomain
+        ClientId: !Ref SmartNotesUserPoolClient
+
+  ApiKeyId:
+    Description: >
+      API Key ID (not the key value itself). After deploy, run:
+      aws apigateway get-api-key --api-key <this-value> --include-value --query value --output text
+      to retrieve the actual key string to use in the x-api-key header.
+    Value: !Ref SmartNotesApiKey
+
+  NotesTableName:
+    Description: DynamoDB table name
+    Value: !Ref NotesTable
+
+  NotesBucketName:
+    Description: S3 bucket name storing note images
+    Value: !Ref NotesBucket
+
+  SmartNotesFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt SmartNotesFunction.Arn

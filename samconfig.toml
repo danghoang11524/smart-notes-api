@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "smart-notes-api"
+resolve_s3 = true
+s3_prefix = "smart-notes-api"
+region = "ap-southeast-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "StageName=\"dev\" BucketNamePrefix=\"smart-notes-storage\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-southeast-1"

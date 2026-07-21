@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Notes — Drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16241d;
+    --bg-deep: #0f1b15;
+    --rail: #24382e;
+    --card: #f4ecd8;
+    --card-line: #d9c9a2;
+    --ink: #2a2115;
+    --ink-soft: #756748;
+    --accent: #8c2f2a;
+    --accent-dim: #6e2521;
+    --brass: #c8a35f;
+    --brass-dim: #8d6f3d;
+    --paper-shadow: rgba(15, 12, 5, 0.35);
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-mono: 'Courier Prime', 'Courier New', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+  }
+
+  body{
+    background-image:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.03), transparent 60%),
+      repeating-linear-gradient(180deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 1px, transparent 1px, transparent 3px);
+    padding-bottom: 80px;
+  }
+
+  /* ---------- Header : the drawer front plate ---------- */
+  header.drawer-front{
+    background: linear-gradient(180deg, var(--rail), var(--bg));
+    border-bottom: 1px solid rgba(200,163,95,0.25);
+    padding: 28px 24px 22px;
+    position: relative;
+  }
+  .plate{
+    max-width: 880px;
+    margin: 0 auto;
+    display:flex;
+    align-items:flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .plate h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-style: normal;
+    font-size: clamp(28px, 5vw, 40px);
+    color: var(--brass);
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+  .plate .sub{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #9fae9f;
+    margin-top: 6px;
+  }
+  .plate .count{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--brass-dim);
+    border: 1px solid var(--brass-dim);
+    border-radius: 3px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  /* ---------- User name display / edit ---------- */
+  .user-name-wrap{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #ead9b3;
+    border: 1px solid var(--brass-dim);
+    border-radius: 3px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+  .user-name-wrap .user-name{
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-name-wrap input.user-name-input{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(244,236,216,0.1);
+    color: #ead9b3;
+    border: 1px solid var(--brass);
+    border-radius: 3px;
+    padding: 2px 6px;
+    max-width: 140px;
+  }
+  .user-name-edit{
+    background: transparent;
+    border: none;
+    color: var(--brass-dim);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 2px;
+  }
+  .user-name-edit:hover{ color: var(--brass); }
+
+  /* ---------- Layout ---------- */
+  main{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 28px 24px 0;
+  }
+
+  /* ---------- New card slot ---------- */
+  .new-card{
+    background: repeating-linear-gradient(180deg, rgba(244,236,216,0.04) 0px, rgba(244,236,216,0.04) 1px, transparent 1px, transparent 26px), transparent;
+    border: 1.5px dashed var(--brass-dim);
+    border-radius: 6px;
+    padding: 18px;
+    margin-bottom: 26px;
+  }
+  .new-card .row{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .new-card input[type="text"],
+  .new-card textarea{
+    font-family: var(--font-display);
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    padding: 10px 12px;
+    width: 100%;
+    font-size: 16px;
+    resize: vertical;
+  }
+  .new-card input[type="text"]{
+    font-weight: 600;
+    font-size: 18px;
+  }
+  .new-card textarea{
+    min-height: 64px;
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+  .new-card .meta-row{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    margin-top: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .char-count{
+    font-size: 11px;
+    color: #7f9483;
+    letter-spacing: 0.5px;
+  }
+  .char-count.over{ color: #d98b86; }
+
+  .stamp-btn{
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-size: 12.5px;
+    color: var(--card);
+    background: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 3px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  .stamp-btn:hover{ background: var(--accent-dim); }
+  .stamp-btn:active{ transform: scale(0.94) rotate(-1deg); }
+  .stamp-btn:disabled{ opacity: 0.45; cursor: not-allowed; }
+  .stamp-btn.ghost{
+    background: transparent;
+    color: #cbb98a;
+    border-color: var(--brass-dim);
+  }
+  .stamp-btn.ghost:hover{ background: rgba(200,163,95,0.12); }
+
+  @keyframes stampland{
+    0%{ transform: scale(1.8) rotate(-14deg); opacity:0; }
+    60%{ transform: scale(0.95) rotate(-4deg); opacity:1; }
+    100%{ transform: scale(1) rotate(-4deg); opacity:1; }
+  }
+  .filed-flash{
+    display:inline-block;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-left: 10px;
+    animation: stampland 0.4s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .filed-flash{ animation: none; }
+  }
+
+  /* ---------- Controls bar: search + sort ---------- */
+  .controls-bar{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items:center;
+    margin-bottom: 22px;
+  }
+  .search-wrap{
+    position: relative;
+    flex: 1 1 220px;
+  }
+  .search-wrap::before{
+    content: "⌕";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--brass-dim);
+    font-size: 15px;
+    pointer-events: none;
+  }
+  #searchInput{
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    background: rgba(244,236,216,0.06);
+    color: #ead9b3;
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    padding: 10px 12px 10px 32px;
+  }
+  #searchInput::placeholder{ color: #7f9483; }
+  #searchInput:focus{
+    background: rgba(244,236,216,0.1);
+    outline: none;
+  }
+  .clear-search-btn{
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #9fae9f;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    display: none;
+  }
+  .search-wrap.has-value .clear-search-btn{ display: block; }
+
+  #sortSelect{
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    background: rgba(244,236,216,0.06);
+    color: #ead9b3;
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    padding: 10px 10px;
+    cursor: pointer;
+  }
+  #sortSelect option{
+    background: var(--bg);
+    color: var(--card);
+  }
+
+  /* ---------- Grid of cards ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    grid-auto-rows: 1fr;
+  }
+
+  .card{
+    background: var(--card);
+    border-radius: 2px 2px 6px 6px;
+    box-shadow: 0 10px 22px var(--paper-shadow), 0 1px 0 rgba(255,255,255,0.4) inset;
+    position: relative;
+    padding: 18px 16px 14px;
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    transform: rotate(var(--tilt, 0deg));
+    cursor: pointer;
+    z-index: 1;
+    height: 340px;
+    overflow: hidden;
+  }
+  .card:hover,
+  .card:focus-within{
+    z-index: 5;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height: 6px;
+    background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.14) 6px 8px);
+    background-position: top;
+  }
+
+  .card-title{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 4px 0 0;
+    word-break: break-word;
+    flex-shrink: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-title mark{
+    background: rgba(140,47,42,0.22);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  .card-content{
+    font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    background-image: repeating-linear-gradient(180deg, transparent 0 27px, var(--card-line) 27px 28px);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 28px;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .card-content mark{
+    background: rgba(140,47,42,0.22);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* ---------- Card image strip (multiple thumbnails) ---------- */
+  .card-photos-row{
+    display:flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-self: flex-start;
+    margin: 2px 0 4px 2px;
+    flex-shrink: 0;
+  }
+  .card-photo-wrap{
+    position: relative;
+    transform: rotate(-3deg);
+  }
+  .card-photo-wrap:nth-child(2n){ transform: rotate(2deg); }
+  .card-photo{
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    display:block;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .card-photo-more{
+    width: 64px;
+    height: 64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 4px solid #fff;
+    background: rgba(42,33,21,0.08);
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .photo-remove{
+    position:absolute;
+    top:3px; right:3px;
+    background: rgba(20,15,8,0.68);
+    color:#fff;
+    border:none;
+    border-radius: 50%;
+    width: 18px; height:18px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 2;
+  }
+  .photo-remove:hover{ background: var(--accent); }
+
+  .card-footer{
+    display:flex;
+    align-items:flex-end;
+    justify-content: space-between;
+    margin-top: 6px;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .stamp-date{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 3px;
+    padding: 3px 6px;
+    transform: rotate(-2deg);
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+  .card-actions{
+    display:flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+  }
+  .icon-btn{
+    background: transparent;
+    border: 1px solid var(--card-line);
+    color: var(--ink-soft);
+    border-radius: 3px;
+    width: 30px; height: 30px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size: 14px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .icon-btn:hover{ background: rgba(0,0,0,0.06); color: var(--ink); }
+  .icon-btn.danger:hover{ background: rgba(140,47,42,0.12); color: var(--accent); border-color: var(--accent); }
+  .icon-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+  .card.editing{
+    outline: 2px solid var(--brass-dim);
+    outline-offset: 3px;
+    cursor: default;
+  }
+  .card.editing .card-actions .stamp-btn{
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  .card textarea.edit-content,
+  .card input.edit-title{
+    font-family: var(--font-display);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    padding: 6px 8px;
+    background: #fffdf7;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .card input.edit-title{ font-weight:700; font-size: 18px; flex-shrink: 0; }
+  .card textarea.edit-content{ font-size: 15px; flex: 1; resize: none; min-height: 0; }
+
+  .edit-photos-row{
+    display:flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .edit-photos-row .icon-btn{
+    flex-shrink: 0;
+  }
+
+  .confirm-row{
+    background: rgba(140,47,42,0.08);
+    border: 1px dashed var(--accent);
+    border-radius: 3px;
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-dim);
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .hidden-input{ display:none; }
+
+  /* ---------- Pagination ---------- */
+  .pagination{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    margin: 30px 0 10px;
+    flex-wrap: wrap;
+  }
+  .pagination button{
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    background: rgba(244,236,216,0.06);
+    color: #ead9b3;
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    min-width: 36px;
+  }
+  .pagination button:hover:not(:disabled){ background: rgba(244,236,216,0.14); }
+  .pagination button:disabled{ opacity: 0.35; cursor: not-allowed; }
+  .pagination button.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--card);
+    font-weight: 700;
+  }
+  .pagination .page-info{
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #9fae9f;
+    letter-spacing: 0.5px;
+    margin: 0 4px;
+  }
+
+  /* ---------- Note detail modal ---------- */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 12, 5, 0.6);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+  }
+  .modal-card{
+    background: var(--card);
+    border-radius: 2px 2px 8px 8px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.4) inset;
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px 32px 26px;
+    display:flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .modal-card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height: 8px;
+    background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,0.14) 6px 8px);
+    background-position: top;
+  }
+  .modal-close{
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: 1px solid var(--card-line);
+    color: var(--ink-soft);
+    border-radius: 3px;
+    width: 32px; height: 32px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size: 15px;
+  }
+  .modal-close:hover{ background: rgba(0,0,0,0.06); color: var(--ink); }
+  .modal-title{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 6px 40px 0 0;
+    word-break: break-word;
+  }
+  .modal-content{
+    font-family: var(--font-display);
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ---------- Modal image grid ---------- */
+  .modal-image-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  .modal-photo-wrap{
+    position: relative;
+  }
+  .modal-photo{
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display:block;
+    border: 5px solid #fff;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    cursor: zoom-in;
+    transition: transform 0.15s ease;
+  }
+  .modal-photo:hover{ transform: scale(1.03); }
+  .modal-meta{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-top: 1px dashed var(--card-line);
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+  .modal-dates{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: var(--ink-soft);
+    display:flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* ---------- Lightbox (phóng to ảnh) ---------- */
+  .lightbox{
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 12, 5, 0.92);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 200;
+    padding: 40px;
+  }
+  .lightbox img{
+    max-width: 90vw;
+    max-height: 85vh;
+    border: 8px solid #f4ecd8;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .lightbox-close{
+    position: absolute;
+    top: 20px; right: 28px;
+    color: #f4ecd8;
+    background: transparent;
+    border: 1px solid rgba(244,236,216,0.4);
+    border-radius: 3px;
+    width: 36px; height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .lightbox-close:hover{ background: rgba(244,236,216,0.12); }
+  .lightbox-nav{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 1px solid rgba(244,236,216,0.4);
+    color: #f4ecd8;
+    width: 44px; height: 44px;
+    border-radius: 3px;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .lightbox-nav:hover{ background: rgba(244,236,216,0.12); }
+  .lightbox-nav.prev{ left: 20px; }
+  .lightbox-nav.next{ right: 20px; }
+  .lightbox-counter{
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ead9b3;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- Skeleton loading cards ---------- */
+  .card.skeleton{
+    pointer-events: none;
+  }
+  .sk-line{
+    height: 13px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--card-line) 25%, #efe3c4 37%, var(--card-line) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+  }
+  .sk-title{ height: 20px; width: 70%; margin: 4px 0 6px; }
+  .sk-line.short{ width: 45%; }
+  .sk-line.full{ width: 100%; margin-bottom: 8px; }
+  .sk-footer{
+    display:flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  .sk-pill{ height: 20px; width: 90px; border-radius: 3px; }
+  @keyframes skeleton-loading{
+    0%{ background-position: 100% 50%; }
+    100%{ background-position: 0 50%; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sk-line{ animation: none; }
+  }
+
+  /* ---------- States ---------- */
+  .state-block{
+    text-align:center;
+    padding: 60px 20px;
+    color: #a9bdae;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .state-block .glyph{
+    font-size: 34px;
+    display:block;
+    margin-bottom: 14px;
+    opacity: 0.7;
+  }
+  .state-block .stamp-btn{
+    margin-top: 18px;
+  }
+  .error-banner{
+    border: 1px solid var(--accent);
+    background: rgba(140,47,42,0.12);
+    color: #f0c9c6;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    margin-bottom: 24px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .error-banner button{
+    font-family: var(--font-mono);
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: #f0c9c6;
+    border-radius: 3px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  a.footer-note{
+    display:block;
+    text-align:center;
+    color: #5f7566;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-top: 40px;
+  }
+
+  ::selection{ background: var(--accent); color: #fff; }
+
+  :focus-visible{
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<header class="drawer-front">
+  <div class="plate">
+    <div>
+      <h1>Smart Notes</h1>
+      <div class="sub">card catalog · general drawer</div>
+    </div>
+    <div class="user-name-wrap" id="userNameWrap" title="Bấm biểu tượng bút để đổi tên hiển thị">
+      <span class="user-name" id="userNameDisplay">—</span>
+      <button class="user-name-edit" id="userNameEditBtn" aria-label="Đổi tên hiển thị" title="Đổi tên hiển thị">✎</button>
+    </div>
+    <div class="count" id="count">— cards</div>
+    <button class="stamp-btn ghost" id="logoutBtn" style="margin-left:8px;">Đăng xuất</button>
+  </div>
+</header>
+
+<main>
+  <div id="errorBanner" style="display:none;" class="error-banner">
+    <span id="errorText"></span>
+    <button id="retryBtn">Retry</button>
+  </div>
+
+  <section class="new-card">
+    <div class="row">
+      <input type="text" id="newTitle" placeholder="Title this card…" maxlength="100">
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <textarea id="newContent" placeholder="Write what you need to remember…" maxlength="5000"></textarea>
+    </div>
+    <div class="row" style="margin-top:10px; align-items:center; gap:10px;">
+      <button type="button" class="stamp-btn ghost" id="newAttachBtn">📎 Đính kèm ảnh</button>
+      <span class="char-count" id="newImagesCount">0 / 5 ảnh</span>
+      <input type="file" accept="image/*" multiple class="hidden-input" id="newImagesInput">
+    </div>
+    <div class="card-photos-row" id="newImagesPreview" style="margin-top:8px;"></div>
+    <div class="meta-row">
+      <span class="char-count" id="charCount">0 / 5000</span>
+      <span>
+        <span id="filedFlash"></span>
+        <button class="stamp-btn" id="createBtn">File card</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="controls-bar">
+    <div class="search-wrap" id="searchWrap">
+      <input type="text" id="searchInput" placeholder="Search cards…" aria-label="Search notes">
+      <button class="clear-search-btn" id="clearSearchBtn" aria-label="Clear search" title="Clear search">✕</button>
+    </div>
+    <select id="sortSelect" aria-label="Sort notes">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="title-asc">Title A–Z</option>
+      <option value="title-desc">Title Z–A</option>
+    </select>
+  </section>
+
+  <div id="stateArea"></div>
+  <div class="grid" id="grid"></div>
+  <div class="pagination" id="pagination"></div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<div class="lightbox" id="lightbox" style="display:none;">
+  <button class="lightbox-close" id="lightboxCloseBtn" aria-label="Đóng">✕</button>
+  <button class="lightbox-nav prev" id="lightboxPrevBtn" aria-label="Ảnh trước">‹</button>
+  <img id="lightboxImg" src="" alt="Ảnh phóng to">
+  <button class="lightbox-nav next" id="lightboxNextBtn" aria-label="Ảnh sau">›</button>
+  <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+
+<script>
+  const API_BASE = "https://gfq2wh8jp7.execute-api.ap-southeast-1.amazonaws.com/dev";
+  // Lấy giá trị thật bằng lệnh:
+  // aws apigateway get-api-key --api-key ojqpmc6hc4 --include-value --query value --output text
+  // rồi dán kết quả vào đây thay cho placeholder bên dưới:
+  const API_KEY = "fGIacMx0eM7hs7toA8TcIIYSwCAFFRd1FVSYQPea";
+
+  const MAX_IMAGES_PER_NOTE = 5;
+  const PAGE_SIZE = 6;
+
+  // ----- Cognito Hosted UI config (đã lấy từ Outputs sau khi sam deploy) -----
+  const COGNITO_DOMAIN = "smart-notes-484010150696"; // chỉ phần prefix, không có .auth...
+  const COGNITO_REGION = "ap-southeast-1";
+  const COGNITO_CLIENT_ID = "kkg7n5pqc3u2t0mvllfida0cs"; // Outputs: UserPoolClientId
+  const REDIRECT_URI = window.location.origin + window.location.pathname; // phải khớp CallbackURLs trong template.yaml
+  const HOSTED_UI_LOGIN_URL = `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/login?client_id=${COGNITO_CLIENT_ID}&response_type=token&scope=openid+email+profile&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+  const HOSTED_UI_LOGOUT_URL = `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/logout?client_id=${COGNITO_CLIENT_ID}&logout_uri=${encodeURIComponent(REDIRECT_URI)}`;
+
+  function getStoredIdToken(){
+    return localStorage.getItem('sn_id_token');
+  }
+  function decodeToken(token){
+    try{
+      return JSON.parse(atob(token.split('.')[1]));
+    }catch(e){
+      return null;
+    }
+  }
+  function isTokenExpired(token){
+    const payload = decodeToken(token);
+    return !payload || !payload.exp || (Date.now() / 1000) > payload.exp;
+  }
+  function goToLogin(){
+    localStorage.removeItem('sn_id_token');
+    window.location.href = HOSTED_UI_LOGIN_URL;
+  }
+  function logout(){
+    localStorage.removeItem('sn_id_token');
+    window.location.href = HOSTED_UI_LOGOUT_URL;
+  }
+
+  // 1) Nếu vừa được Hosted UI redirect về, URL sẽ có #id_token=...&access_token=...
+  (function captureTokenFromRedirect(){
+    if(window.location.hash && window.location.hash.includes('id_token=')){
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const idToken = params.get('id_token');
+      if(idToken){
+        localStorage.setItem('sn_id_token', idToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  })();
+
+  // 2) Bắt buộc đăng nhập: nếu không có token hợp lệ, chuyển sang Hosted UI ngay lập tức
+  const currentToken = getStoredIdToken();
+  if(!currentToken || isTokenExpired(currentToken)){
+    goToLogin();
+  } else {
+    runApp();
+  }
+
+  function runApp(){
+
+  const grid = document.getElementById('grid');
+  const stateArea = document.getElementById('stateArea');
+  const countEl = document.getElementById('count');
+  const errorBanner = document.getElementById('errorBanner');
+  const errorText = document.getElementById('errorText');
+  const retryBtn = document.getElementById('retryBtn');
+  const paginationEl = document.getElementById('pagination');
+
+  const newTitle = document.getElementById('newTitle');
+  const newContent = document.getElementById('newContent');
+  const createBtn = document.getElementById('createBtn');
+  const charCount = document.getElementById('charCount');
+  const filedFlash = document.getElementById('filedFlash');
+  const newAttachBtn = document.getElementById('newAttachBtn');
+  const newImagesInput = document.getElementById('newImagesInput');
+  const newImagesPreview = document.getElementById('newImagesPreview');
+  const newImagesCount = document.getElementById('newImagesCount');
+
+  // ----- Tên người dùng hiển thị (tuỳ chỉnh, lưu riêng theo từng tài khoản) -----
+  const userNameDisplay = document.getElementById('userNameDisplay');
+  const userNameEditBtn = document.getElementById('userNameEditBtn');
+  const userNameWrap = document.getElementById('userNameWrap');
+
+  function getUserSub(){
+    const payload = decodeToken(getStoredIdToken());
+    return (payload && (payload.sub || payload.email)) || 'anonymous';
+  }
+  function defaultDisplayName(){
+    const payload = decodeToken(getStoredIdToken());
+    if(!payload) return 'Người dùng';
+    return payload.name || payload.email || payload['cognito:username'] || 'Người dùng';
+  }
+  function getDisplayNameStorageKey(){
+    return `sn_display_name_${getUserSub()}`;
+  }
+  function getDisplayName(){
+    return localStorage.getItem(getDisplayNameStorageKey()) || defaultDisplayName();
+  }
+  function setDisplayName(name){
+    localStorage.setItem(getDisplayNameStorageKey(), name);
+  }
+  function renderUserName(){
+    userNameDisplay.textContent = getDisplayName();
+  }
+  function startEditUserName(){
+    const current = getDisplayName();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'user-name-input';
+    input.maxLength = 40;
+    input.value = current;
+    userNameDisplay.replaceWith(input);
+    input.focus();
+    input.select();
+    const finish = (save) => {
+      if(save){
+        const val = input.value.trim();
+        if(val) setDisplayName(val);
+      }
+      input.replaceWith(userNameDisplay);
+      renderUserName();
+    };
+    input.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') finish(true);
+      if(e.key === 'Escape') finish(false);
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+  userNameEditBtn.addEventListener('click', startEditUserName);
+  renderUserName();
+
+  // Ảnh đã chọn nhưng chưa upload - note chưa có id nên chưa gọi API được,
+  // chỉ preview bằng object URL tại chỗ, upload thật sự diễn ra ngay sau
+  // khi note được tạo thành công (xem createBtn handler bên dưới).
+  let pendingFiles = [];
+
+  function renderNewImagesPreview(){
+    newImagesCount.textContent = `${pendingFiles.length} / ${MAX_IMAGES_PER_NOTE} ảnh`;
+    newAttachBtn.disabled = pendingFiles.length >= MAX_IMAGES_PER_NOTE;
+    newImagesPreview.innerHTML = pendingFiles.map((file, i) => `
+      <div class="card-photo-wrap">
+        <img class="card-photo" src="${URL.createObjectURL(file)}" alt="Xem trước ảnh ${i + 1}">
+        <button type="button" class="photo-remove" data-index="${i}" title="Bỏ ảnh này" aria-label="Bỏ ảnh này">✕</button>
+      </div>
+    `).join('');
+    newImagesPreview.querySelectorAll('.photo-remove').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        pendingFiles.splice(Number(btn.dataset.index), 1);
+        renderNewImagesPreview();
+      });
+    });
+  }
+
+  newAttachBtn.addEventListener('click', () => newImagesInput.click());
+  newImagesInput.addEventListener('change', () => {
+    const files = Array.from(newImagesInput.files || []);
+    if(pendingFiles.length + files.length > MAX_IMAGES_PER_NOTE){
+      showError(`Chỉ được chọn tối đa ${MAX_IMAGES_PER_NOTE} ảnh cho 1 note.`);
+    }
+    pendingFiles = [...pendingFiles, ...files].slice(0, MAX_IMAGES_PER_NOTE);
+    renderNewImagesPreview();
+    newImagesInput.value = '';
+  });
+
+  const searchInput = document.getElementById('searchInput');
+  const searchWrap = document.getElementById('searchWrap');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const sortSelect = document.getElementById('sortSelect');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCard = document.getElementById('modalCard');
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  // ----- Lightbox elements & state -----
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCounter = document.getElementById('lightboxCounter');
+  const lightboxCloseBtn = document.getElementById('lightboxCloseBtn');
+  const lightboxPrevBtn = document.getElementById('lightboxPrevBtn');
+  const lightboxNextBtn = document.getElementById('lightboxNextBtn');
+  let lightboxImages = [];
+  let lightboxIndex = 0;
+
+  function openLightbox(images, startIndex){
+    lightboxImages = images;
+    lightboxIndex = startIndex;
+    renderLightbox();
+    lightbox.style.display = 'flex';
+  }
+  function renderLightbox(){
+    const total = lightboxImages.length;
+    lightboxImg.src = lightboxImages[lightboxIndex].url;
+    lightboxCounter.textContent = total > 1 ? `${lightboxIndex + 1} / ${total}` : '';
+    const showNav = total > 1;
+    lightboxPrevBtn.style.display = showNav ? 'block' : 'none';
+    lightboxNextBtn.style.display = showNav ? 'block' : 'none';
+  }
+  function closeLightbox(){
+    lightbox.style.display = 'none';
+    lightboxImg.src = '';
+  }
+  function lightboxPrev(){
+    lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
+    renderLightbox();
+  }
+  function lightboxNext(){
+    lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
+    renderLightbox();
+  }
+  lightboxCloseBtn.addEventListener('click', closeLightbox);
+  lightboxPrevBtn.addEventListener('click', lightboxPrev);
+  lightboxNextBtn.addEventListener('click', lightboxNext);
+  lightbox.addEventListener('click', (e) => {
+    if(e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if(lightbox.style.display !== 'flex') return;
+    if(e.key === 'Escape') closeLightbox();
+    if(e.key === 'ArrowLeft') lightboxPrev();
+    if(e.key === 'ArrowRight') lightboxNext();
+  });
+
+  let notes = [];
+  let loading = true;
+  let error = null;
+  let searchQuery = '';
+  let sortMode = 'newest';
+  let currentPage = 1;
+
+  const tilts = new Map();
+  function tiltFor(id){
+    if(!tilts.has(id)){
+      tilts.set(id, (Math.random() * 1.6 - 0.8).toFixed(2) + 'deg');
+    }
+    return tilts.get(id);
+  }
+
+  function fmtDate(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    if(isNaN(d)) return '';
+    const day = String(d.getDate()).padStart(2,'0');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return `FILED ${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function fmtDatePlain(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    if(isNaN(d)) return '';
+    const day = String(d.getDate()).padStart(2,'0');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${day} ${months[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  function highlightMatch(escapedText, query){
+    if(!query) return escapedText;
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escapedQuery, 'ig');
+    return escapedText.replace(re, (m) => `<mark>${m}</mark>`);
+  }
+
+  async function apiFetch(path, options = {}){
+    const token = getStoredIdToken();
+    if(!token || isTokenExpired(token)){
+      goToLogin();
+      throw new Error('Phiên đăng nhập đã hết hạn.');
+    }
+    const headers = { ...(options.headers || {}), 'x-api-key': API_KEY, 'Authorization': token };
+    const res = await fetch(API_BASE + path, { ...options, headers });
+    let body = null;
+    try{ body = await res.json(); }catch(e){ /* no body */ }
+    if(res.status === 401){
+      goToLogin();
+    }
+    if(!res.ok || (body && body.success === false)){
+      const message = (body && body.message) || `Request failed (${res.status})`;
+      throw new Error(message);
+    }
+    return body ? body.data : null;
+  }
+
+  function showError(message){
+    error = message;
+    errorText.textContent = message;
+    errorBanner.style.display = 'flex';
+  }
+  function clearError(){
+    error = null;
+    errorBanner.style.display = 'none';
+  }
+
+  function getFilteredSortedNotes(){
+    const q = searchQuery.trim().toLocaleLowerCase();
+    let result = notes;
+    if(q){
+      result = result.filter(n =>
+        (n.title || '').toLocaleLowerCase().includes(q) ||
+        (n.content || '').toLocaleLowerCase().includes(q)
+      );
+    }
+    result = result.slice();
+    switch(sortMode){
+      case 'oldest':
+        result.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'title-asc':
+        result.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+        break;
+      case 'title-desc':
+        result.sort((a,b) => (b.title||'').localeCompare(a.title||''));
+        break;
+      case 'newest':
+      default:
+        result.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+    }
+    return result;
+  }
+
+  function renderPagination(totalItems){
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+    if(currentPage > totalPages) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+
+    if(totalPages <= 1){
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    let html = `<button data-page="prev" ${currentPage === 1 ? 'disabled' : ''} aria-label="Trang trước">‹</button>`;
+    for(let p = 1; p <= totalPages; p++){
+      html += `<button data-page="${p}" class="${p === currentPage ? 'active' : ''}">${p}</button>`;
+    }
+    html += `<button data-page="next" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Trang sau">›</button>`;
+    html += `<span class="page-info">Trang ${currentPage}/${totalPages}</span>`;
+    paginationEl.innerHTML = html;
+
+    paginationEl.querySelectorAll('button[data-page]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.page;
+        if(val === 'prev') currentPage = Math.max(1, currentPage - 1);
+        else if(val === 'next') currentPage = Math.min(totalPages, currentPage + 1);
+        else currentPage = Number(val);
+        render();
+        window.scrollTo({ top: grid.offsetTop - 20, behavior: 'smooth' });
+      });
+    });
+  }
+
+  function renderSkeletons(count){
+    grid.innerHTML = '';
+    for(let i = 0; i < count; i++){
+      const card = document.createElement('article');
+      card.className = 'card skeleton';
+      card.style.setProperty('--tilt', ((Math.random() * 1.6 - 0.8).toFixed(2)) + 'deg');
+      card.innerHTML = `
+        <div class="sk-line sk-title"></div>
+        <div class="sk-line full"></div>
+        <div class="sk-line full"></div>
+        <div class="sk-line short"></div>
+        <div class="sk-footer">
+          <div class="sk-line sk-pill"></div>
+          <div class="sk-line sk-pill"></div>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+  }
+
+  function render(){
+    countEl.textContent = notes.length === 1 ? '1 card' : `${notes.length} cards`;
+    searchWrap.classList.toggle('has-value', searchQuery.length > 0);
+
+    if(loading){
+      stateArea.innerHTML = `<div class="state-block"><span class="glyph">☙</span>Searching the drawer…</div>`;
+      renderSkeletons(6);
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    const filtered = getFilteredSortedNotes();
+
+    if(!error && notes.length === 0){
+      stateArea.innerHTML = `
+        <div class="state-block">
+          <span class="glyph">▤</span>
+          This drawer is empty.<br>File your first card above.
+          <br>
+          <button class="stamp-btn" id="jumpToFormBtn">File a card now</button>
+        </div>`;
+      grid.innerHTML = '';
+      paginationEl.innerHTML = '';
+      const jumpBtn = document.getElementById('jumpToFormBtn');
+      if(jumpBtn){
+        jumpBtn.addEventListener('click', () => {
+          newTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          newTitle.focus();
+        });
+      }
+      return;
+    }
+
+    if(!error && filtered.length === 0 && searchQuery){
+      stateArea.innerHTML = `
+        <div class="state-block">
+          <span class="glyph">⌕</span>
+          No cards match "${escapeHtml(searchQuery)}".
+          <br>
+          <button class="stamp-btn ghost" id="clearSearchStateBtn">Clear search</button>
+        </div>`;
+      grid.innerHTML = '';
+      paginationEl.innerHTML = '';
+      const clearBtn = document.getElementById('clearSearchStateBtn');
+      if(clearBtn){
+        clearBtn.addEventListener('click', () => {
+          searchInput.value = '';
+          searchQuery = '';
+          currentPage = 1;
+          render();
+        });
+      }
+      return;
+    }
+
+    stateArea.innerHTML = '';
+    grid.innerHTML = '';
+
+    renderPagination(filtered.length);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+    pageItems.forEach(note => grid.appendChild(renderCard(note)));
+  }
+
+  function openModal(note){
+    const images = note.images || [];
+
+    const imagesHtml = images.length > 0 ? `
+      <div class="modal-image-grid">
+        ${images.map((img, i) => `
+          <div class="modal-photo-wrap">
+            <img class="modal-photo" data-img-index="${i}" src="${img.url}" alt="Ảnh ${i + 1} của ghi chú ${escapeHtml(note.title)}">
+          </div>
+        `).join('')}
+      </div>` : '';
+
+    const createdLine = note.createdAt ? `Filed: ${fmtDatePlain(note.createdAt)}` : '';
+    const updatedLine = (note.updatedAt && note.updatedAt !== note.createdAt) ? `Last updated: ${fmtDatePlain(note.updatedAt)}` : '';
+
+    modalCard.innerHTML = `
+      <button class="modal-close" id="modalCloseBtn" aria-label="Đóng" title="Đóng">✕</button>
+      <div class="modal-title">${escapeHtml(note.title)}</div>
+      ${imagesHtml}
+      <div class="modal-content">${escapeHtml(note.content)}</div>
+      <div class="modal-meta">
+        <div class="modal-dates">
+          ${createdLine ? `<span>${createdLine}</span>` : ''}
+          ${updatedLine ? `<span>${updatedLine}</span>` : ''}
+        </div>
+        <span class="card-actions">
+          <button class="stamp-btn ghost" id="modalEditBtn">Sửa</button>
+          <button class="stamp-btn" id="modalCloseBtn2">Đóng</button>
+        </span>
+      </div>
+    `;
+
+    modalOverlay.style.display = 'flex';
+
+    // Click bất kỳ ảnh nào trong modal -> mở lightbox phóng to, bắt đầu từ đúng ảnh đó
+    modalCard.querySelectorAll('.modal-photo').forEach((imgEl) => {
+      imgEl.addEventListener('click', () => {
+        const idx = Number(imgEl.dataset.imgIndex);
+        openLightbox(images, idx);
+      });
+    });
+
+    const close = () => { modalOverlay.style.display = 'none'; modalCard.innerHTML = ''; };
+    document.getElementById('modalCloseBtn').addEventListener('click', close);
+    document.getElementById('modalCloseBtn2').addEventListener('click', close);
+    document.getElementById('modalEditBtn').addEventListener('click', () => {
+      close();
+      note._editing = true;
+      render();
+    });
+  }
+
+  modalOverlay.addEventListener('click', (e) => {
+    if(e.target === modalOverlay){
+      modalOverlay.style.display = 'none';
+      modalCard.innerHTML = '';
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && modalOverlay.style.display === 'flex' && lightbox.style.display !== 'flex'){
+      modalOverlay.style.display = 'none';
+      modalCard.innerHTML = '';
+    }
+  });
+
+  function renderCard(note){
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.style.setProperty('--tilt', tiltFor(note.id));
+    const images = note.images || [];
+
+    if(note._editing){
+      card.classList.add('editing');
+      const atLimitEdit = images.length >= MAX_IMAGES_PER_NOTE;
+      const editPhotosHtml = `
+        <div class="edit-photos-row">
+          ${images.map((img) => `
+            <div class="card-photo-wrap">
+              <img class="card-photo" src="${img.url}" alt="Ảnh đính kèm ghi chú ${escapeHtml(note.title)}">
+              <button class="photo-remove" data-action="remove-photo" data-image-id="${img.id}" title="Gỡ ảnh" aria-label="Gỡ ảnh">✕</button>
+            </div>
+          `).join('')}
+          <button type="button" class="icon-btn" data-action="attach-edit" title="${atLimitEdit ? 'Đã đủ ' + MAX_IMAGES_PER_NOTE + ' ảnh' : 'Đính kèm ảnh'}" aria-label="Đính kèm ảnh" ${atLimitEdit ? 'disabled' : ''}>📎</button>
+          <input type="file" accept="image/*" multiple class="hidden-input" data-role="edit-file-input">
+        </div>
+      `;
+      card.innerHTML = `
+        <input class="edit-title" type="text" maxlength="100" value="${escapeHtml(note.title)}">
+        <textarea class="edit-content" maxlength="5000">${escapeHtml(note.content)}</textarea>
+        ${editPhotosHtml}
+        <div class="card-footer">
+          <span class="stamp-date">${fmtDate(note.updatedAt || note.createdAt)}</span>
+          <span class="card-actions">
+            <button class="stamp-btn ghost" data-action="cancel-edit">Cancel</button>
+            <button class="stamp-btn" data-action="save-edit">Save</button>
+          </span>
+        </div>
+      `;
+      card.querySelector('[data-action="cancel-edit"]').addEventListener('click', () => {
+        note._editing = false;
+        render();
+      });
+      card.querySelector('[data-action="save-edit"]').addEventListener('click', async () => {
+        const title = card.querySelector('.edit-title').value.trim();
+        const content = card.querySelector('.edit-content').value.trim();
+        if(!title || !content){
+          showError('A card needs both a title and content before it can be filed.');
+          return;
+        }
+        try{
+          const updated = await apiFetch(`/notes/${note.id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ title, content })
+          });
+          clearError();
+          Object.assign(note, updated, { _editing: false });
+          render();
+        }catch(e){
+          showError(e.message);
+        }
+      });
+
+      // Xoá ảnh - chỉ khả dụng trong chế độ sửa
+      card.querySelectorAll('[data-action="remove-photo"]').forEach((removeBtn) => {
+        removeBtn.addEventListener('click', async () => {
+          const imageId = removeBtn.dataset.imageId;
+          try{
+            const updated = await apiFetch(`/notes/${note.id}/images/${imageId}`, { method: 'DELETE' });
+            clearError();
+            Object.assign(note, updated);
+            render();
+          }catch(e){
+            showError(e.message);
+          }
+        });
+      });
+
+      // Đính kèm thêm ảnh - vẫn trong chế độ sửa
+      const editFileInput = card.querySelector('[data-role="edit-file-input"]');
+      const editAttachBtn = card.querySelector('[data-action="attach-edit"]');
+      editAttachBtn.addEventListener('click', () => {
+        if(atLimitEdit) return;
+        editFileInput.click();
+      });
+      editFileInput.addEventListener('change', async () => {
+        const files = Array.from(editFileInput.files || []);
+        if(files.length === 0) return;
+        const remainingSlots = MAX_IMAGES_PER_NOTE - images.length;
+        if(files.length > remainingSlots){
+          showError(`Note này chỉ còn ${remainingSlots} chỗ trống cho ảnh (tối đa ${MAX_IMAGES_PER_NOTE} ảnh/note).`);
+          editFileInput.value = '';
+          return;
+        }
+        const formData = new FormData();
+        files.forEach((file) => formData.append('images', file));
+        try{
+          const updated = await apiFetch(`/notes/${note.id}/images`, {
+            method: 'POST',
+            body: formData
+          });
+          clearError();
+          Object.assign(note, updated);
+          render();
+        }catch(e){
+          showError(e.message);
+        }finally{
+          editFileInput.value = '';
+        }
+      });
+
+      return card;
+    }
+
+    if(note._confirmingDelete){
+      card.innerHTML = `
+        <div class="card-title">${escapeHtml(note.title)}</div>
+        <div class="confirm-row">
+          <span>Withdraw this card for good?</span>
+          <span class="card-actions">
+            <button class="stamp-btn ghost" data-action="cancel-delete">Keep it</button>
+            <button class="stamp-btn" data-action="confirm-delete">Withdraw</button>
+          </span>
+        </div>
+      `;
+      card.querySelector('[data-action="cancel-delete"]').addEventListener('click', () => {
+        note._confirmingDelete = false;
+        render();
+      });
+      card.querySelector('[data-action="confirm-delete"]').addEventListener('click', async () => {
+        try{
+          await apiFetch(`/notes/${note.id}`, { method: 'DELETE' });
+          clearError();
+          notes = notes.filter(n => n.id !== note.id);
+          render();
+        }catch(e){
+          showError(e.message);
+        }
+      });
+      return card;
+    }
+
+    // Hiển thị tối đa 3 thumbnail trên card (chỉ xem, không xoá được ở đây);
+    // muốn xoá ảnh phải bấm Sửa trước.
+    const maxShown = 3;
+    const shown = images.slice(0, maxShown);
+    const extraCount = images.length - shown.length;
+    const photosHtml = images.length > 0 ? `
+      <div class="card-photos-row">
+        ${shown.map((img) => `
+          <div class="card-photo-wrap">
+            <img class="card-photo" src="${img.url}" alt="Ảnh đính kèm ghi chú ${escapeHtml(note.title)}">
+          </div>
+        `).join('')}
+        ${extraCount > 0 ? `<div class="card-photo-more">+${extraCount}</div>` : ''}
+      </div>` : '';
+
+    const titleHtml = highlightMatch(escapeHtml(note.title), searchQuery);
+    const contentHtml = highlightMatch(escapeHtml(note.content), searchQuery);
+
+    card.innerHTML = `
+      <div class="card-title">${titleHtml}</div>
+      <div class="card-content">${contentHtml}</div>
+      ${photosHtml}
+      <div class="card-footer">
+        <span class="stamp-date">${fmtDate(note.updatedAt || note.createdAt)}</span>
+        <span class="card-actions">
+          <button class="icon-btn" data-action="edit" title="Sửa" aria-label="Sửa">✎</button>
+          <button class="icon-btn danger" data-action="delete" title="Xóa" aria-label="Xóa">✕</button>
+        </span>
+      </div>
+    `;
+
+    card.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      note._editing = true;
+      render();
+    });
+    card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      note._confirmingDelete = true;
+      render();
+    });
+
+    // Click bất kỳ đâu khác trên card -> mở modal chi tiết note
+    card.addEventListener('click', () => openModal(note));
+
+    return card;
+  }
+
+  async function loadNotes(){
+    loading = true;
+    render();
+    try{
+      const data = await apiFetch('/notes');
+      notes = data || [];
+      clearError();
+    }catch(e){
+      showError(`Không thể mở ngăn kéo: ${e.message}`);
+    }finally{
+      loading = false;
+      render();
+    }
+  }
+
+  function updateCharCount(){
+    const len = newContent.value.length;
+    charCount.textContent = `${len} / 5000`;
+    charCount.classList.toggle('over', len > 5000);
+  }
+  newContent.addEventListener('input', updateCharCount);
+
+  let searchDebounce;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      searchQuery = searchInput.value;
+      currentPage = 1;
+      render();
+    }, 150);
+  });
+  clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    currentPage = 1;
+    render();
+    searchInput.focus();
+  });
+
+  sortSelect.addEventListener('change', () => {
+    sortMode = sortSelect.value;
+    currentPage = 1;
+    render();
+  });
+
+  createBtn.addEventListener('click', async () => {
+    const title = newTitle.value.trim();
+    const content = newContent.value.trim();
+    if(!title){
+      showError('Mỗi card cần một tiêu đề trước khi được lưu.');
+      newTitle.focus();
+      return;
+    }
+    if(!content){
+      showError('Mỗi card cần nội dung trước khi được lưu.');
+      newContent.focus();
+      return;
+    }
+    createBtn.disabled = true;
+    try{
+      let created = await apiFetch('/notes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title, content })
+      });
+      clearError();
+
+      // Note đã có id -> giờ mới upload được ảnh đã chọn từ trước (nếu có)
+      if(pendingFiles.length > 0){
+        try{
+          const formData = new FormData();
+          pendingFiles.forEach((file) => formData.append('images', file));
+          created = await apiFetch(`/notes/${created.id}/images`, {
+            method: 'POST',
+            body: formData
+          });
+        }catch(imgErr){
+          showError(`Đã lưu note, nhưng upload ảnh thất bại: ${imgErr.message}`);
+        }
+      }
+
+      notes.push(created);
+      newTitle.value = '';
+      newContent.value = '';
+      updateCharCount();
+      pendingFiles = [];
+      renderNewImagesPreview();
+      currentPage = 1;
+      render();
+      filedFlash.innerHTML = '<span class="filed-flash">FILED</span>';
+      setTimeout(() => { filedFlash.innerHTML = ''; }, 900);
+    }catch(e){
+      showError(e.message);
+    }finally{
+      createBtn.disabled = false;
+    }
+  });
+
+  retryBtn.addEventListener('click', () => {
+    clearError();
+    loadNotes();
+  });
+
+  renderNewImagesPreview();
+  loadNotes();
+  } // end runApp()
+</script>
+</body>
+</html>

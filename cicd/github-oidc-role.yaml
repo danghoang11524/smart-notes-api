@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  One-time setup: GitHub OIDC identity provider + IAM role that GitHub Actions
+  assumes (via OIDC, no stored AWS access keys) to run `sam deploy` for the
+  smart-notes-api stack. Deploy this stack ONCE manually (aws cli / console),
+  then put the output RoleArn into the GitHub repo secret AWS_DEPLOY_ROLE_ARN.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Description: Your GitHub username or organization (e.g. "johndoe")
+
+  GitHubRepo:
+    Type: String
+    Description: Repository name only, no org prefix (e.g. "smart-notes-api")
+
+  StackNamePrefix:
+    Type: String
+    Default: smart-notes-api
+    Description: Prefix used to scope IAM permissions to this project's resources only
+
+Resources:
+  # ---------------------------------------------------------------------
+  # GitHub's OIDC provider. Only ONE of these can exist per AWS account -
+  # if you already created it for another repo/project, delete this
+  # resource from the template and hardcode GitHubOidcProviderArn below
+  # via !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+  # instead of !Ref GitHubOidcProvider.
+  # ---------------------------------------------------------------------
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        # GitHub's OIDC thumbprint (Actions uses AWS's own root CA now, this
+        # value is accepted by AWS regardless as a required-but-unused field)
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${StackNamePrefix}-github-actions-deploy"
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              # Restrict to your repo, and only workflows triggered from the
+              # main branch (blocks PRs from forks / other branches from
+              # ever being able to assume this role)
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main"
+      Policies:
+        - PolicyName: SamDeployPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # CloudFormation - manage the smart-notes-api stack
+              - Sid: CloudFormationDeploy
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResource
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ListStackResources
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:ValidateTemplate
+                Resource:
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${StackNamePrefix}*/*"
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/aws-sam-cli-managed-default/*"
+
+              # S3 - SAM CLI managed artifacts bucket (--resolve-s3)
+              - Sid: SamArtifactsBucket
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutBucketPolicy
+                  - s3:PutEncryptionConfiguration
+                  - s3:PutBucketVersioning
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - "arn:aws:s3:::aws-sam-cli-managed-default*"
+                  - "arn:aws:s3:::aws-sam-cli-managed-default*/*"
+
+              # Lambda
+              - Sid: LambdaDeploy
+                Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:DeleteFunction
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:GetPolicy
+                  - lambda:ListVersionsByFunction
+                  - lambda:PublishVersion
+                  - lambda:TagResource
+                  - lambda:ListTags
+                Resource:
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${StackNamePrefix}*"
+
+              # API Gateway (REST API is managed by editing account resources directly)
+              - Sid: ApiGatewayDeploy
+                Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                Resource:
+                  - "arn:aws:apigateway:*::/restapis*"
+                  - "arn:aws:apigateway:*::/apikeys*"
+                  - "arn:aws:apigateway:*::/usageplans*"
+                  - "arn:aws:apigateway:*::/account"
+                  - "arn:aws:apigateway:*::/tags*"
+
+              # DynamoDB
+              - Sid: DynamoDbDeploy
+                Effect: Allow
+                Action:
+                  - dynamodb:CreateTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:DeleteTable
+                  - dynamodb:DescribeTable
+                  - dynamodb:TagResource
+                  - dynamodb:UpdateTimeToLive
+                  - dynamodb:DescribeTimeToLive
+                Resource:
+                  - !Sub "arn:aws:dynamodb:*:${AWS::AccountId}:table/Notes-*"
+
+              # S3 - the Notes images bucket
+              - Sid: NotesBucketDeploy
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutBucketCORS
+                  - s3:PutBucketPolicy
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPolicy
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutEncryptionConfiguration
+                Resource:
+                  - "arn:aws:s3:::smart-notes-storage-*"
+
+              # Cognito
+              - Sid: CognitoDeploy
+                Effect: Allow
+                Action:
+                  - cognito-idp:CreateUserPool
+                  - cognito-idp:UpdateUserPool
+                  - cognito-idp:DeleteUserPool
+                  - cognito-idp:DescribeUserPool
+                  - cognito-idp:CreateUserPoolDomain
+                  - cognito-idp:DeleteUserPoolDomain
+                  - cognito-idp:DescribeUserPoolDomain
+                  - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:UpdateUserPoolClient
+                  - cognito-idp:DeleteUserPoolClient
+                  - cognito-idp:DescribeUserPoolClient
+                  - cognito-idp:CreateIdentityProvider
+                  - cognito-idp:UpdateIdentityProvider
+                  - cognito-idp:DeleteIdentityProvider
+                  - cognito-idp:DescribeIdentityProvider
+                  - cognito-idp:TagResource
+                Resource:
+                  - !Sub "arn:aws:cognito-idp:*:${AWS::AccountId}:userpool/*"
+
+              # IAM - only for the Lambda execution role(s) created by this stack
+              - Sid: PassAndManageLambdaExecRole
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PassRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackNamePrefix}*"
+
+              # CloudWatch Logs (log groups created by the logging setup)
+              - Sid: LogsDeploy
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:DescribeLogGroups
+                  - logs:TagResource
+                Resource:
+                  - !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/lambda/${StackNamePrefix}*"
+                  - !Sub "arn:aws:logs:*:${AWS::AccountId}:log-group:/aws/apigateway/${StackNamePrefix}*"
+
+Outputs:
+  DeployRoleArn:
+    Description: >
+      Put this value into the GitHub repo secret AWS_DEPLOY_ROLE_ARN
+      (Settings -> Secrets and variables -> Actions -> New repository secret)
+    Value: !GetAtt GitHubActionsDeployRole.Arn

@@ -1,0 +1,28 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/notes",
+  "httpMethod": "POST",
+  "headers": {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "notes"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "abc123",
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "POST",
+    "path": "/dev/notes",
+    "stage": "dev",
+    "requestId": "test-request-id-1",
+    "identity": {},
+    "protocol": "HTTP/1.1"
+  },
+  "body": "{\"title\":\"AWS Learning\",\"content\":\"Learning Lambda\"}",
+  "isBase64Encoded": false
+}

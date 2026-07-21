@@ -1,0 +1,28 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/notes/REPLACE_WITH_NOTE_ID",
+  "httpMethod": "PUT",
+  "headers": {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "notes/REPLACE_WITH_NOTE_ID"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "abc126",
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "PUT",
+    "path": "/dev/notes/REPLACE_WITH_NOTE_ID",
+    "stage": "dev",
+    "requestId": "test-request-id-4",
+    "identity": {},
+    "protocol": "HTTP/1.1"
+  },
+  "body": "{\"title\":\"AWS Learning Updated\",\"content\":\"Learning Lambda and API Gateway\"}",
+  "isBase64Encoded": false
+}
