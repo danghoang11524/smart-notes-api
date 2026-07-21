@@ -35,13 +35,6 @@ jobs:
       - name: Install AWS SAM CLI
         run: pip install aws-sam-cli
 
-      - name: Debug - check secret reaches job
-        run: |
-          echo "Role ARN length: ${#ROLE_ARN}"
-          echo "Role ARN (masked): ${ROLE_ARN:0:20}...${ROLE_ARN: -10}"
-        env:
-          ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:

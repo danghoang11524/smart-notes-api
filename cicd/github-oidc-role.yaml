@@ -54,10 +54,14 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               # Restrict to your repo, and only workflows triggered from the
-              # main branch (blocks PRs from forks / other branches from
-              # ever being able to assume this role)
+              # main branch. GitHub now issues the "sub" claim in either the
+              # classic name-based format or the newer immutable-ID format
+              # (repo:OWNER@OWNER-ID/REPO@REPO-ID:ref:...), so both are
+              # listed here to stay valid regardless of which one GitHub uses.
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main"
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main"
+                  - !Sub "repo:${GitHubOrg}@200697557/${GitHubRepo}@1307120772:ref:refs/heads/main"
       Policies:
         - PolicyName: SamDeployPolicy
           PolicyDocument:
